@@ -1,13 +1,16 @@
 package com.hung.chatbot.repository;
 
-import com.hung.chatbot.entity.User;
+import com.hung.chatbot.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-/**
- * @author Admin
- * @since 11/16/2025
- */
+import java.util.Optional;
+
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByUsername(String username);
+    
+    Boolean existsByUsername(String username);
+    
+    Boolean existsByEmail(String email);
 }
