@@ -1,6 +1,6 @@
 package com.hung.chatbot.security;
 
-import com.hung.chatbot.model.User;
+import com.hung.chatbot.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
@@ -37,8 +37,8 @@ public class JwtUtils {
         return generateTokenFromUsername(userPrincipal.getUsername(), jwtExpirationMs);
     }
 
-    public String generateRefreshToken(User user) {
-        return generateTokenFromUsername(user.getUsername(), refreshExpirationMs);
+    public String generateRefreshToken(String username) {
+        return generateTokenFromUsername(username, refreshExpirationMs);
     }
 
     public String generateTokenFromUsername(String username, long expiration) {

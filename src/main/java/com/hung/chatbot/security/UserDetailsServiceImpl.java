@@ -1,6 +1,6 @@
 package com.hung.chatbot.security;
 
-import com.hung.chatbot.model.User;
+import com.hung.chatbot.entity.User;
 import com.hung.chatbot.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;

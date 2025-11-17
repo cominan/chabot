@@ -20,4 +20,18 @@ public class User {
     private String username;
 
     private String email;
+
+    @Column(nullable = false, columnDefinition = "VARCHAR2(255) DEFAULT 'CHANGE_ME'")
+    private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role = Role.USER;  // Thêm dòng này
+
+    // Thêm enum Role
+    public enum Role {
+        USER,
+        ADMIN,
+        MODERATOR
+    }
 }
