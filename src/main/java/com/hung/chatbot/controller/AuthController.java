@@ -14,10 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 
@@ -68,5 +65,16 @@ public class AuthController {
         response.addCookie(refreshTokenCookie);
 
         return ResponseEntity.ok(authResponse);
+    }
+
+    @RestController
+    @RequestMapping("/api/auth")
+    @CrossOrigin(origins = "*", maxAge = 3600)
+    public class OAuth2Controller {
+
+        @GetMapping("/oauth2/authorization/google")
+        public void redirectToGoogleOAuth2() {
+            // This will be handled by Spring Security
+        }
     }
 }

@@ -14,18 +14,18 @@ import java.util.List;
 public class ChatbotApplication {
 
 	public static void main(String[] args) {
-//		SpringApplication.run(ChatbotApplication.class, args);
-		String filePath = "C:/Users/Admin/Downloads/Book1.xlsx";
+		SpringApplication.run(ChatbotApplication.class, args);
+//		String filePath = "C:/Users/Admin/Downloads/Book1.xlsx";
 
 		//"C:\Users\Admin\Downloads\Book1.xlsx"
 
-		System.out.println("=== Đọc dữ liệu thô ===");
-		List<MaterialsInformation> rawData = ExcelReader.readExcelToObjects(filePath, "Sheet1", MaterialsInformation.class, true);
+//		System.out.println("=== Đọc dữ liệu thô ===");
+//		List<MaterialsInformation> rawData = ExcelReader.readExcelToObjects(filePath, "Sheet1", MaterialsInformation.class, true);
 
-		ConfigurableApplicationContext context = SpringApplication.run(ChatbotApplication.class, args);
+//		ConfigurableApplicationContext context = SpringApplication.run(ChatbotApplication.class, args);
 
-		MaterialsInformationService service = context.getBean(MaterialsInformationService.class);
-		service.insertFromFile(rawData);
+//		MaterialsInformationService service = context.getBean(MaterialsInformationService.class);
+//		service.insertFromFile(rawData);
 	}
 
 }

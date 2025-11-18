@@ -2,6 +2,7 @@ package com.hung.chatbot.security;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.hung.chatbot.entity.User;
+import com.hung.chatbot.security.oauth2.CustomOAuth2User;
 import lombok.AllArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -90,4 +91,20 @@ public class UserDetailsImpl implements UserDetails {
         UserDetailsImpl user = (UserDetailsImpl) o;
         return Objects.equals(id, user.id);
     }
+
+    // Add this new factory method for OAuth2 users
+    public static UserDetailsImpl buildFromOAuth2User(CustomOAuth2User oauth2User) {
+        List<GrantedAuthority> authorities = List.of(
+                new SimpleGrantedAuthority("ROLE_USER") // Default role for OAuth2 users
+        );
+
+        return new UserDetailsImpl(
+                null, // ID will be set after user is saved
+                oauth2User.getEmail(), // Use email as username
+                oauth2User.getEmail(),
+                "N/A", // OAuth2 users don't have a password
+                authorities
+        );
+    }
+
 }
