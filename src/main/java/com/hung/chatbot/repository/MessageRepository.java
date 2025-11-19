@@ -13,4 +13,10 @@ import java.util.List;
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findTop20ByConversation_ConversationIdOrderByCreatedAtDesc(Long conversationId);
+
+    // Thêm method mới
+    List<Message> findByConversation_ConversationIdOrderByCreatedAtAsc(Long conversationId);
+
+    // Đếm số lượng message trong conversation
+    int countByConversation_ConversationId(Long conversationId);
 }

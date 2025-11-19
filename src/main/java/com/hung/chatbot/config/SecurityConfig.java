@@ -91,7 +91,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Cho phép tất cả các nguồn (trong môi trường production nên hạn chế lại)
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5174")); // Thêm domain FE của bạn
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173")); // Thêm domain FE của bạn
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("authorization", "content-type", "x-auth-token"));
         configuration.setExposedHeaders(Arrays.asList("x-auth-token"));
