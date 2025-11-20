@@ -16,8 +16,7 @@ import java.time.LocalDateTime;
 @Table(name = "MATERIALS_INFORMATION")
 public class MaterialsInformation {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "mat_seq")
-    @SequenceGenerator(name = "mat_seq", sequenceName = "MATERIALS_SEQ", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "STT")
     private Long stt;
 

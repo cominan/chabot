@@ -4,10 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hung.chatbot.DTO.ChatRequest;
 import com.hung.chatbot.DTO.ChatResponse;
+import com.hung.chatbot.DTO.CreateConversationRequest;
+import com.hung.chatbot.DTO.CreateConversationResponse;
 import com.hung.chatbot.DTO.NLPCloudRequest;
 import com.hung.chatbot.DTO.NLPCloudResponse;
 import com.hung.chatbot.entity.Conversation;
 import com.hung.chatbot.entity.Message;
+import com.hung.chatbot.entity.User;
 import com.hung.chatbot.repository.ConversationRepository;
 import com.hung.chatbot.repository.MessageRepository;
 import com.hung.chatbot.repository.UserRepository;
@@ -15,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -50,37 +54,43 @@ public class ChatService {
         // 3. Lấy lịch sử 20 tin gần nhất
         List<Message> history = messageRepo.findTop20ByConversation_ConversationIdOrderByCreatedAtDesc(conv.getConversationId());
 
-        StringBuilder context = new StringBuilder();
-        history.reversed().forEach(m -> context.append(m.getSender()).append(": ").append(m.getContent()).append("\n"));
+        // 4. Xây dựng history theo định dạng NLP Cloud API
+        // History phải là các cặp input-response theo thứ tự thời gian
+        List<NLPCloudRequest.HistoryItem> hist = new java.util.ArrayList<>();
+        List<Message> sortedHistory = new java.util.ArrayList<>(history);
+        sortedHistory.sort((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt())); // Sắp xếp theo thời gian tăng dần
 
-        // 4. Gọi AI (ở đây demo: bot trả lời lại message)
-        List<NLPCloudRequest.HistoryItem> hist = history.stream().filter(m -> m.getSender().equals("user")) // lấy các cặp input/response
-                .map(m -> {
-                    Message botReplyMsg = history.stream().filter(x -> x.getCreatedAt().isAfter(m.getCreatedAt()) && x.getSender()
-                            .equals("bot")).findFirst().orElse(null);
+        for (int i = 0; i < sortedHistory.size() - 1; i++) {
+            Message current = sortedHistory.get(i);
+            Message next = sortedHistory.get(i + 1);
 
-                    return new NLPCloudRequest.HistoryItem(m.getContent(), botReplyMsg != null ? botReplyMsg.getContent() : "");
-                }).toList();
+            // Tìm cặp user -> bot
+            if (current.getSender().equals("user") && next.getSender().equals("bot")) {
+                hist.add(new NLPCloudRequest.HistoryItem(current.getContent(), next.getContent()));
+            }
+        }
 
+        // 5. Tạo request body cho NLP Cloud API
         NLPCloudRequest body = new NLPCloudRequest();
         body.setInput(req.getMessage());
         body.setContext("This is a discussion between a human and an AI assistant.");
         body.setHistory(hist);
 
+        // 6. Gọi NLP Cloud API
         String rawResponse = nlpCloudClient.post()
                 .uri("/chatbot")
                 .bodyValue(body)
                 .retrieve()
-                .bodyToMono(String.class)   // luôn nhận dạng text/plain OK
+                .bodyToMono(String.class)
                 .block();
 
-        // Parse JSON nếu NLP Cloud trả về JSON
+        // 7. Parse JSON response từ NLP Cloud
         ObjectMapper mapper = new ObjectMapper();
         NLPCloudResponse apiRes = mapper.readValue(rawResponse, NLPCloudResponse.class);
 
         String botReply = apiRes.getResponse();
 
-        // 5. Lưu message bot vào DB
+        // 8. Lưu message bot vào DB
         Message botMsg = new Message();
         botMsg.setConversation(conv);
         botMsg.setSender("bot");
@@ -93,5 +103,36 @@ public class ChatService {
         res.setBotReply(botReply);
 
         return res;
+    }
+
+    /**
+     * Tạo conversation mới
+     */
+    public CreateConversationResponse createConversation(CreateConversationRequest request, Long userId) {
+        // 1. Kiểm tra user có tồn tại không
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        // 2. Tạo conversation mới
+        Conversation conversation = new Conversation();
+        conversation.setUser(user);
+        conversation.setTitle(request.getTitle() != null && !request.getTitle().isEmpty()
+                ? request.getTitle()
+                : "New Conversation");
+        conversation.setCreatedAt(LocalDateTime.now());
+        conversation.setLastUpdated(LocalDateTime.now());
+
+        // 3. Lưu vào database
+        Conversation savedConversation = conversationRepo.save(conversation);
+
+        // 4. Tạo response
+        CreateConversationResponse response = new CreateConversationResponse();
+        response.setConversationId(savedConversation.getConversationId());
+        response.setUserId(savedConversation.getUser().getUserId());
+        response.setTitle(savedConversation.getTitle());
+        response.setCreatedAt(savedConversation.getCreatedAt());
+        response.setMessage("Conversation created successfully");
+
+        return response;
     }
 }
