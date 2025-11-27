@@ -8,6 +8,7 @@ import com.hung.chatbot.security.JwtUtils;
 import com.hung.chatbot.service.AuthService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,7 +17,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -67,7 +70,7 @@ public class AuthController {
         return ResponseEntity.ok(authResponse);
     }
 
-    @RestController
+
     @RequestMapping("/api/auth")
     @CrossOrigin(origins = "*", maxAge = 3600)
     public class OAuth2Controller {
@@ -77,4 +80,14 @@ public class AuthController {
             // This will be handled by Spring Security
         }
     }
+
+    @RestController
+    @RequestMapping("/session")
+    public class SessionController {
+        @GetMapping("/id")
+        public Map<String,String> getSessionId(HttpSession session) {
+            return Collections.singletonMap("sessionId", session.getId());
+        }
+    }
+
 }

@@ -3,6 +3,8 @@ package com.hung.chatbot.config;
 import com.hung.chatbot.security.jwt.AuthEntryPointJwt;
 import com.hung.chatbot.security.jwt.AuthTokenFilter;
 import com.hung.chatbot.security.UserDetailsServiceImpl;
+import com.hung.chatbot.security.CustomAuthenticationSuccessHandler;
+import com.hung.chatbot.security.CustomAuthenticationSuccessHandler;
 import com.hung.chatbot.security.oauth2.CustomOAuth2SuccessHandler;
 import com.hung.chatbot.security.oauth2.CustomOAuth2UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,12 @@ public class SecurityConfig {
 
     @Autowired
     private AuthEntryPointJwt unauthorizedHandler;
+    
+    @Autowired
+    private CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
+    
+    @Autowired
+    private CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
 
     @Bean
     public AuthTokenFilter authenticationJwtTokenFilter() {
@@ -70,8 +78,18 @@ public class SecurityConfig {
                                         "/swagger-ui/**",
                                         "/swagger-ui.html",
                                         "/oauth2/**",
-                                        "/error"
+                                        "/error",
+                                        "/v3/api-docs/**",
+                                        "/swagger-ui/**",
+                                        "/swagger-ui.html",
+                                        "/api-docs/swagger-config",
+                                    "/api-docs"
                                 ).permitAll()
+                                .formLogin(form -> form
+                                        .loginProcessingUrl("/api/auth/signin")
+                                        .successHandler(customAuthenticationSuccessHandler)
+                                        .permitAll()
+                                )
                                 .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

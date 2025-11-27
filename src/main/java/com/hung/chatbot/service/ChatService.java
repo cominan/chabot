@@ -16,7 +16,7 @@ import com.hung.chatbot.repository.MessageRepository;
 import com.hung.chatbot.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestClient;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,7 +31,7 @@ public class ChatService {
     private final ConversationRepository conversationRepo;
     private final MessageRepository messageRepo;
     private final UserRepository userRepo;
-    private final WebClient nlpCloudClient;
+    private final RestClient nlpCloudClient;
 
     public ChatResponse handleChat(ChatRequest req) throws JsonProcessingException {
 
@@ -79,10 +79,8 @@ public class ChatService {
         // 6. Gọi NLP Cloud API
         String rawResponse = nlpCloudClient.post()
                 .uri("/chatbot")
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+                .body(body)
+                .retrieve().toString();
 
         // 7. Parse JSON response từ NLP Cloud
         ObjectMapper mapper = new ObjectMapper();
