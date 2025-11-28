@@ -4,9 +4,9 @@ import com.hung.chatbot.security.jwt.AuthEntryPointJwt;
 import com.hung.chatbot.security.jwt.AuthTokenFilter;
 import com.hung.chatbot.security.UserDetailsServiceImpl;
 import com.hung.chatbot.security.CustomAuthenticationSuccessHandler;
-import com.hung.chatbot.security.CustomAuthenticationSuccessHandler;
 import com.hung.chatbot.security.oauth2.CustomOAuth2SuccessHandler;
 import com.hung.chatbot.security.oauth2.CustomOAuth2UserService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +17,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -43,11 +44,8 @@ public class SecurityConfig {
     @Autowired
     private AuthEntryPointJwt unauthorizedHandler;
     
-    @Autowired
-    private CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
-    
-    @Autowired
-    private CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
+    // Removed @Autowired to break circular dependency
+    private final CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
 
     @Bean
     public AuthTokenFilter authenticationJwtTokenFilter() {
@@ -63,6 +61,16 @@ public class SecurityConfig {
     
         return authProvider;
     }
+    
+    @Bean
+    public static SessionRegistry sessionRegistry() {
+        return new org.springframework.security.core.session.SessionRegistryImpl();
+    }
+    
+    @Autowired
+    public SecurityConfig(CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler) {
+        this.customAuthenticationSuccessHandler = customAuthenticationSuccessHandler;
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -70,7 +78,13 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session
+                    .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                    .maximumSessions(1)
+                    .maxSessionsPreventsLogin(false)
+                    .expiredUrl("/login?expired")
+                    .sessionRegistry(sessionRegistry())
+                )
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers(
                                         "/api/auth/**",
@@ -83,13 +97,9 @@ public class SecurityConfig {
                                         "/swagger-ui/**",
                                         "/swagger-ui.html",
                                         "/api-docs/swagger-config",
-                                    "/api-docs"
+                                        "/api-docs",
+                                        "/ws/**"
                                 ).permitAll()
-                                .formLogin(form -> form
-                                        .loginProcessingUrl("/api/auth/signin")
-                                        .successHandler(customAuthenticationSuccessHandler)
-                                        .permitAll()
-                                )
                                 .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

@@ -4,26 +4,31 @@ import com.hung.chatbot.service.WebSocketService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.session.SessionInformation;
+import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.stereotype.Component;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
 
 @Component
 @Transactional
 public class CustomAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
-
-    private final Map<String, String> userSessionMap = new ConcurrentHashMap<>();
+    
+    private final SessionRegistry sessionRegistry;
+    private final WebSocketService webSocketService;
     
     @Autowired
-    private WebSocketService webSocketService;
+    public CustomAuthenticationSuccessHandler(SessionRegistry sessionRegistry, WebSocketService webSocketService) {
+        this.sessionRegistry = sessionRegistry;
+        this.webSocketService = webSocketService;
+    }
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, 
@@ -31,19 +36,23 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
                                       Authentication authentication) throws IOException, ServletException {
         
         String username = authentication.getName();
-        String sessionId = request.getSession().getId();
+        String currentSessionId = request.getSession().getId();
         
-        // Check if user already has an active session
-        if (userSessionMap.containsKey(username)) {
-            String existingSessionId = userSessionMap.get(username);
-            if (!existingSessionId.equals(sessionId)) {
-                // Notify the old session to logout
-                webSocketService.sendForceLogout(username, existingSessionId);
+        // Get all sessions for this user
+        List<SessionInformation> sessions = sessionRegistry.getAllSessions(authentication.getPrincipal(), false);
+        
+        // Expire all other sessions except the current one
+        for (SessionInformation session : sessions) {
+            if (!session.getSessionId().equals(currentSessionId)) {
+                // Notify the old session to logout via WebSocket
+                webSocketService.sendForceLogout(username, session.getSessionId());
+                // Expire the session
+                session.expireNow();
             }
         }
         
-        // Update the session map with the new session
-        userSessionMap.put(username, sessionId);
+        // Register the new session
+        sessionRegistry.registerNewSession(currentSessionId, authentication.getPrincipal());
         
         // Set session timeout (in seconds)
         request.getSession().setMaxInactiveInterval(60 * 60 * 24); // 24 hours
@@ -53,6 +62,6 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
     }
     
     public void removeUserSession(String username) {
-        userSessionMap.remove(username);
+        // No need to implement this as SessionRegistry handles it
     }
 }

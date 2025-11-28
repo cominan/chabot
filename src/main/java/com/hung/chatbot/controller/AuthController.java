@@ -30,8 +30,47 @@ public class AuthController {
     private JwtUtils jwtUtils;
 
     @PostMapping("/signin")
-    public ResponseEntity<AuthResponse> authenticateUser(@Valid @RequestBody AuthRequest authRequest) {
-        return ResponseEntity.ok(authService.authenticateUser(authRequest));
+    public ResponseEntity<?> authenticateUser(
+            @RequestParam(value = "username", required = false) String username,
+            @RequestParam(value = "password", required = false) String password,
+            @RequestBody(required = false) AuthRequest authRequest,
+            HttpServletResponse response) {
+            
+        // Handle both form data and JSON
+        if (authRequest == null && username != null && password != null) {
+            authRequest = new AuthRequest();
+            authRequest.setUsername(username);
+            authRequest.setPassword(password);
+        }
+        
+        if (authRequest == null) {
+            return ResponseEntity.badRequest().body("Invalid request");
+        }
+        
+        try {
+            AuthResponse authResponse = authService.authenticateUser(authRequest);
+
+            // Set fresh cookies so browser immediately uses new tokens
+            Cookie accessTokenCookie = new Cookie("accessToken", authResponse.getAccessToken());
+            accessTokenCookie.setHttpOnly(true);
+            accessTokenCookie.setSecure(false);
+            accessTokenCookie.setPath("/");
+            accessTokenCookie.setMaxAge(24 * 60 * 60);
+
+            Cookie refreshTokenCookie = new Cookie("refreshToken", authResponse.getRefreshToken());
+            refreshTokenCookie.setHttpOnly(true);
+            refreshTokenCookie.setSecure(false);
+            refreshTokenCookie.setPath("/api/auth/refresh");
+            refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60);
+
+            response.addCookie(accessTokenCookie);
+            response.addCookie(refreshTokenCookie);
+
+            return ResponseEntity.ok(authResponse);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Collections.singletonMap("error", "Invalid username or password"));
+        }
     }
 
 //    @PostMapping("/signup")
